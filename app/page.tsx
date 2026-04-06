@@ -758,64 +758,12 @@ export default function Page() {
               )}
             </div>
 
-            {/* 검색으로도 등록 가능 */}
-            <details className="mb-5">
-              <summary className="text-xs text-gray-400 cursor-pointer hover:text-[#7B5EA7]">🔍 책 제목으로 검색해서 등록하기</summary>
-              <div className="mt-3 flex gap-2">
-                <input value={bookQuery} onChange={e => setBookQuery(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && searchBooks()}
-                  placeholder="책 제목, 작가명 검색..."
-                  className="flex-1 border-2 border-purple-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#7B5EA7]" />
-                <button onClick={searchBooks} disabled={bookSearching}
-                  className="px-4 py-2.5 rounded-xl text-white font-bold text-sm shrink-0 disabled:opacity-50"
-                  style={{ background: '#7B5EA7' }}>
-                  {bookSearching ? '...' : '검색'}
-                </button>
-              </div>
-            </details>
 
             {/* 검색 결과 */}
-            {bookResults.length > 0 && (
-              <div className="mb-6">
-                <p className="text-xs font-bold text-gray-400 mb-2">검색 결과 {bookResults.length}건</p>
-                <div className="space-y-2">
-                  {bookResults.map(b => (
-                    <div key={b.id} className="flex gap-3 p-3 bg-white rounded-xl border border-purple-50 shadow-sm">
-                      {b.thumbnail ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={b.thumbnail} alt={b.title} className="w-14 h-20 object-cover rounded-lg shrink-0 shadow-sm" />
-                      ) : (
-                        <div className="w-14 h-20 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#EDE6F5' }}>
-                          <span className="text-xl">📚</span>
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-sm truncate">{b.title}</h4>
-                        <p className="text-xs mt-0.5" style={{ color: '#7B5EA7' }}>{b.authors.join(', ')}</p>
-                        {b.publisher && <p className="text-xs text-gray-400 mt-0.5">{b.publisher}</p>}
-                        <div className="flex gap-2 mt-2">
-                          {b.link && (
-                            <a href={b.link} target="_blank" rel="noopener noreferrer"
-                              className="text-xs font-bold px-3 py-1 rounded-lg border border-purple-200 text-[#7B5EA7] hover:bg-purple-50">
-                              상세보기
-                            </a>
-                          )}
-                          <button onClick={() => addBookToRecommend(b)}
-                            className="text-xs font-bold px-3 py-1 rounded-lg text-white" style={{ background: '#7B5EA7' }}>
-                            + 추천 추가
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* DB에 저장된 추천 도서 */}
+            {/* DB에 저장된 도서 */}
             {books.length > 0 && (
               <div>
-                <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">📚 추천 도서</p>
+                <p className="text-xs font-bold mb-2 uppercase tracking-wider" style={{ color: '#7B5EA7' }}>📚 조이조아 작가들의 책</p>
                 {books.map(book => (
                   <div key={book.id} className="bg-white rounded-2xl p-5 shadow-sm border border-purple-50 mb-3">
                     <div className="flex gap-4">
