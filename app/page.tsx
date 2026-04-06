@@ -250,7 +250,9 @@ export default function Page() {
     const { error } = await supabase.from('members').update({ name: editName.trim(), nickname: editNickname.trim() || null }).eq('id', editingProfile)
     if (error) { alert('수정 실패: ' + error.message); return }
     setEditingProfile(null)
-    await loadMembers()
+    // 전체 데이터 새로고침
+    const { data } = await supabase.from('members').select('*').order('sort_order')
+    if (data) setMembers(data)
     alert('수정 완료!')
   }
 
