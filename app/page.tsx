@@ -14,14 +14,14 @@ const MEMBERS = [
 ]
 
 // ── 탭 정의 ─────────────────────────────────────────────
-type TabId = 'home' | 'members' | 'events' | 'photos' | 'books' | 'space'
+type TabId = 'home' | 'members' | 'events' | 'photos' | 'books' | 'share'
 const TABS: { id: TabId; icon: string; label: string }[] = [
-  { id: 'home', icon: '🏠', label: '홈' },
-  { id: 'members', icon: '👥', label: '식구들' },
-  { id: 'events', icon: '📅', label: '모임일정' },
-  { id: 'photos', icon: '📸', label: '모임사진' },
-  { id: 'books', icon: '📚', label: '신간소식' },
-  { id: 'space', icon: '🏡', label: '공간대여' },
+  { id: 'home', icon: '🏠', label: '조이조아' },
+  { id: 'members', icon: '👥', label: '함께조아' },
+  { id: 'events', icon: '📅', label: '모임조아' },
+  { id: 'photos', icon: '📸', label: '추억조아' },
+  { id: 'books', icon: '📚', label: '소식조아' },
+  { id: 'share', icon: '🎁', label: '나눔조아' },
 ]
 
 // ── 조모닝 Mock 데이터 ──────────────────────────────────
@@ -246,28 +246,33 @@ export default function Page() {
           </div>
         )}
 
-        {/* ═══ 공간대여 ═══ */}
-        {tab === 'space' && (
+        {/* ═══ 나눔조아 ═══ */}
+        {tab === 'share' && (
           <div>
-            <h2 className="font-black text-xl mb-1" style={{ color: '#E8846B' }}>공간대여</h2>
-            <p className="text-sm text-gray-400 mb-4">조이조아 모임 공간을 예약하세요</p>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="font-black text-xl" style={{ color: '#E8846B' }}>나눔조아</h2>
+                <p className="text-sm text-gray-400">서로 나누면 더 커지는 기쁨</p>
+              </div>
+              <button className="text-xs font-bold px-4 py-2 rounded-xl text-white" style={{ background: '#E8846B' }}>+ 나눔 올리기</button>
+            </div>
             {[
-              { name: '조이조아 아지트 A', cap: '10명', price: '시간당 20,000원', avail: true },
-              { name: '조이조아 아지트 B', cap: '20명', price: '시간당 35,000원', avail: true },
-              { name: '대강당', cap: '50명', price: '시간당 80,000원', avail: false },
-            ].map((sp, i) => (
-              <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-orange-50 mb-3">
-                <div className="flex items-center justify-between mb-2">
-                  <h3 className="font-black text-base">{sp.name}</h3>
-                  <span className={`text-xs font-bold px-2 py-1 rounded-full ${sp.avail ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                    {sp.avail ? '예약 가능' : '예약 마감'}
-                  </span>
+              { title: '📖 읽은 책 나눔합니다', author: '김복희', desc: '자기계발서 3권 세트, 상태 깨끗해요!', status: '나눔중', color: '#5B9A6B' },
+              { title: '🌱 화분 나눔해요', author: '꽃피랑', desc: '다육이 2개, 직접 키운 건강한 아이들', status: '나눔중', color: '#5B9A6B' },
+              { title: '✏️ 노트/다이어리 나눔', author: '나유미', desc: '미사용 노트 5권, 선착순 가져가세요', status: '나눔완료', color: '#bbb' },
+              { title: '🎨 미술용품 나눔', author: '조이천사 조남희 작가님', desc: '색연필 세트, 수채화 물감 나눔합니다', status: '나눔중', color: '#5B9A6B' },
+            ].map((item, i) => (
+              <div key={i} className={`bg-white rounded-2xl p-5 shadow-sm border border-orange-50 mb-3 ${item.status === '나눔완료' ? 'opacity-60' : ''}`}>
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-black text-base">{item.title}</h3>
+                  <span className="text-xs font-bold px-2 py-1 rounded-full"
+                    style={{ background: item.color + '20', color: item.color }}>{item.status}</span>
                 </div>
-                <p className="text-sm text-gray-500 mb-1">👥 최대 {sp.cap}</p>
-                <p className="text-sm text-gray-500 mb-3">💰 {sp.price}</p>
-                {sp.avail && (
-                  <button className="w-full text-sm font-bold py-2.5 rounded-xl text-white" style={{ background: '#E8846B' }}>
-                    예약하기
+                <p className="text-sm text-gray-500 mb-1">{item.desc}</p>
+                <p className="text-xs text-gray-400">🙋 {item.author}</p>
+                {item.status === '나눔중' && (
+                  <button className="w-full text-sm font-bold py-2.5 rounded-xl text-white mt-3" style={{ background: '#E8846B' }}>
+                    나눔 신청하기
                   </button>
                 )}
               </div>
