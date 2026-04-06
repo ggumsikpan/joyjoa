@@ -7,10 +7,11 @@ import { supabase } from '@/lib/supabase'
 type Member = { id: string; name: string; nickname: string | null; is_author: boolean; sort_order: number }
 type Morning = { id: string; member_id: string; date: string }
 type Rsvp = { id: string; event_id: string; member_id: string; created_at: string; members?: { name: string } }
-type Event = { id: string; title: string; description: string; place: string; event_date: string; capacity: number; emoji: string; color: string }
+type Event = { id: string; title: string; description: string; place: string; event_date: string; capacity: number; emoji: string; color: string; event_note: string | null }
 type Book = { id: string; title: string; author: string; description: string; cover_url: string; buy_link: string; color: string }
 type Share = { id: string; title: string; description: string; status: string; created_at: string; shared_by: string; members?: { name: string } }
-type Photo = { id: string; album_title: string; image_url: string; created_at: string }
+type Album = { id: string; title: string; description: string; cover_url: string | null; created_at: string; photo_count?: number }
+type Photo = { id: string; album_id: string; album_title: string; image_url: string; created_at: string }
 
 type TabId = 'home' | 'members' | 'events' | 'photos' | 'books' | 'share'
 const TABS: { id: TabId; icon: string; label: string }[] = [
@@ -35,7 +36,11 @@ export default function Page() {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null)
   const [books, setBooks] = useState<Book[]>([])
   const [shares, setShares] = useState<Share[]>([])
+  const [albums, setAlbums] = useState<Album[]>([])
   const [photos, setPhotos] = useState<Photo[]>([])
+  const [openAlbum, setOpenAlbum] = useState<Album | null>(null)
+  const [newAlbumTitle, setNewAlbumTitle] = useState('')
+  const [showNewAlbum, setShowNewAlbum] = useState(false)
   const [selectedMember, setSelectedMember] = useState<string>('')
   const [uploading, setUploading] = useState(false)
   const [bookQuery, setBookQuery] = useState('')
@@ -105,15 +110,34 @@ export default function Page() {
     if (data) setShares(data)
   }, [])
 
-  const loadPhotos = useCallback(async () => {
-    const { data } = await supabase.from('photos').select('*').order('created_at', { ascending: false })
+  const loadAlbums = useCallback(async () => {
+    const { data } = await supabase.from('albums').select('*').order('created_at', { ascending: false })
+    if (data) {
+      const withCount = await Promise.all(data.map(async (a: Album) => {
+        const { count } = await supabase.from('photos').select('*', { count: 'exact', head: true }).eq('album_id', a.id)
+        // 대표 썸네일: cover_url이 없으면 첫 번째 사진 사용
+        let cover = a.cover_url
+        if (!cover) {
+          const { data: first } = await supabase.from('photos').select('image_url').eq('album_id', a.id).order('created_at').limit(1)
+          cover = first?.[0]?.image_url ?? null
+        }
+        return { ...a, photo_count: count ?? 0, cover_url: cover }
+      }))
+      setAlbums(withCount)
+    }
+  }, [])
+
+  const loadPhotos = useCallback(async (albumId?: string) => {
+    let query = supabase.from('photos').select('*').order('created_at', { ascending: false })
+    if (albumId) query = query.eq('album_id', albumId)
+    const { data } = await query
     if (data) setPhotos(data)
   }, [])
 
   useEffect(() => {
     loadMembers(); loadTodayMornings(); loadRecentMornings()
-    loadEvents(); loadAllRsvps(); loadBooks(); loadShares(); loadPhotos()
-  }, [loadMembers, loadTodayMornings, loadRecentMornings, loadEvents, loadAllRsvps, loadBooks, loadShares, loadPhotos])
+    loadEvents(); loadAllRsvps(); loadBooks(); loadShares(); loadAlbums(); loadPhotos()
+  }, [loadMembers, loadTodayMornings, loadRecentMornings, loadEvents, loadAllRsvps, loadBooks, loadShares, loadAlbums, loadPhotos])
 
 
   // ── 꼬리달기 (참여 신청 / 취소) ────────────────────────
@@ -143,24 +167,38 @@ export default function Page() {
     setBookSearching(false)
   }
 
-  // ── 사진 업로드 ────────────────────────────────────────
+  // ── 사진 업로드 (앨범 기반) ──────────────────────────────
   const uploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]; if (!file) return
+    const files = e.target.files; if (!files || !openAlbum) return
     setUploading(true)
-    const ext = file.name.split('.').pop()
-    const path = `${Date.now()}.${ext}`
-    const { error } = await supabase.storage.from('photos').upload(path, file)
-    if (!error) {
-      const { data: urlData } = supabase.storage.from('photos').getPublicUrl(path)
-      await supabase.from('photos').insert({
-        album_title: '모임 사진',
-        image_url: urlData.publicUrl,
-        uploaded_by: selectedMember || null,
-      })
-      await loadPhotos()
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
+      const ext = file.name.split('.').pop()
+      const path = `${openAlbum.id}/${Date.now()}_${i}.${ext}`
+      const { error } = await supabase.storage.from('photos').upload(path, file)
+      if (!error) {
+        const { data: urlData } = supabase.storage.from('photos').getPublicUrl(path)
+        await supabase.from('photos').insert({
+          album_id: openAlbum.id,
+          album_title: openAlbum.title,
+          image_url: urlData.publicUrl,
+          uploaded_by: selectedMember || null,
+        })
+      }
     }
+    await loadPhotos(openAlbum.id)
+    await loadAlbums()
     setUploading(false)
     e.target.value = ''
+  }
+
+  // ── 앨범 생성 ──────────────────────────────────────────
+  const createAlbum = async () => {
+    if (!newAlbumTitle.trim()) return
+    await supabase.from('albums').insert({ title: newAlbumTitle.trim(), created_by: selectedMember || null })
+    setNewAlbumTitle('')
+    setShowNewAlbum(false)
+    await loadAlbums()
   }
 
   // ── 헬퍼 ──────────────────────────────────────────────
@@ -178,12 +216,13 @@ export default function Page() {
             <p className="text-xs text-gray-400 mt-0.5">JoyJoa · 따뜻한 연대의 아지트</p>
           </div>
           {selectedMember && (
-            <div className="flex items-center gap-2">
+            <button onClick={() => { setSelectedMember(''); localStorage.removeItem('joyjoa-member') }}
+              className="flex items-center gap-2 hover:opacity-70 transition-all" title="다른 사람으로 변경">
               <span className="text-xs text-gray-500 font-medium">{memberName(selectedMember)}</span>
               <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#EDE6F5', color: '#7B5EA7' }}>
                 {memberName(selectedMember)?.[0]}
               </div>
-            </div>
+            </button>
           )}
         </div>
       </header>
@@ -258,6 +297,7 @@ export default function Page() {
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center text-lg font-black text-white" style={{ background: ev.color }}>{d.getDate()}</div>
                       <div className="flex-1">
                         <p className="font-bold text-sm">{ev.title}</p>
+                        {ev.event_note && <p className="text-xs font-medium" style={{ color: '#4A8C6F' }}>🎤 {ev.event_note}</p>}
                         <p className="text-xs text-gray-400">{d.getMonth()+1}/{d.getDate()} · 참여 {rsvps.length}/{ev.capacity}</p>
                       </div>
                     </div>
@@ -319,6 +359,11 @@ export default function Page() {
                         {ev.place && <p className="text-sm text-gray-500 mt-1">📍 {ev.place}</p>}
                         <p className="text-sm text-gray-500">🕐 {dateStr}</p>
                         {ev.description && <p className="text-xs text-gray-400 mt-1">{ev.description}</p>}
+                        {ev.event_note && (
+                          <div className="mt-2 px-3 py-2 rounded-lg" style={{ background: '#4A8C6F15' }}>
+                            <p className="text-xs font-bold" style={{ color: '#4A8C6F' }}>🎤 {ev.event_note}</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                     {/* 참여 현황 바 */}
@@ -401,32 +446,84 @@ export default function Page() {
           </div>
         )}
 
-        {/* ═══ 추억조아 (사진 업로드) ═══ */}
-        {tab === 'photos' && (
+        {/* ═══ 추억조아 (앨범 기반) ═══ */}
+        {tab === 'photos' && !openAlbum && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="font-black text-xl" style={{ color: '#7B5EA7' }}>추억조아</h2>
                 <p className="text-sm text-gray-400">함께한 순간들</p>
               </div>
+              <button onClick={() => setShowNewAlbum(true)}
+                className="text-xs font-bold px-4 py-2 rounded-xl text-white" style={{ background: '#7B5EA7' }}>
+                + 앨범 만들기
+              </button>
+            </div>
+            {showNewAlbum && (
+              <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-50 mb-4">
+                <input value={newAlbumTitle} onChange={e => setNewAlbumTitle(e.target.value)}
+                  placeholder="앨범 이름 (예: 4/6 간식봉사 모임)"
+                  className="w-full border-2 border-purple-200 rounded-xl px-4 py-2.5 text-sm mb-3 focus:outline-none focus:border-[#7B5EA7]" />
+                <div className="flex gap-2">
+                  <button onClick={createAlbum} className="flex-1 text-sm font-bold py-2 rounded-xl text-white" style={{ background: '#7B5EA7' }}>만들기</button>
+                  <button onClick={() => { setShowNewAlbum(false); setNewAlbumTitle('') }} className="flex-1 text-sm font-bold py-2 rounded-xl border border-gray-200 text-gray-500">취소</button>
+                </div>
+              </div>
+            )}
+            {albums.length === 0 && !showNewAlbum && (
+              <div className="text-center py-16">
+                <p className="text-5xl mb-3">📸</p>
+                <p className="text-gray-400 text-sm">아직 앨범이 없어요</p>
+                <p className="text-gray-300 text-xs mt-1">첫 번째 앨범을 만들어보세요!</p>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              {albums.map(album => (
+                <button key={album.id} onClick={async () => { setOpenAlbum(album); await loadPhotos(album.id) }}
+                  className="text-left bg-white rounded-2xl overflow-hidden shadow-sm border border-purple-50 hover:shadow-md transition-all">
+                  {album.cover_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={album.cover_url} alt={album.title} className="w-full aspect-[4/3] object-cover" />
+                  ) : (
+                    <div className="w-full aspect-[4/3] flex items-center justify-center" style={{ background: '#EDE6F5' }}>
+                      <span className="text-4xl">📷</span>
+                    </div>
+                  )}
+                  <div className="p-3">
+                    <p className="font-bold text-sm truncate">{album.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">사진 {album.photo_count}장</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {tab === 'photos' && openAlbum && (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <button onClick={() => { setOpenAlbum(null); loadAlbums() }}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-lg" style={{ background: '#EDE6F5', color: '#7B5EA7' }}>←</button>
+              <div className="flex-1">
+                <h2 className="font-black text-lg" style={{ color: '#7B5EA7' }}>{openAlbum.title}</h2>
+                <p className="text-xs text-gray-400">{photos.length}장의 추억</p>
+              </div>
               <button onClick={() => photoInput.current?.click()} disabled={uploading}
                 className="text-xs font-bold px-4 py-2 rounded-xl text-white disabled:opacity-50" style={{ background: '#7B5EA7' }}>
-                {uploading ? '업로드 중...' : '+ 사진 올리기'}
+                {uploading ? '업로드 중...' : '+ 사진'}
               </button>
-              <input ref={photoInput} type="file" accept="image/*" className="hidden" onChange={uploadPhoto} />
+              <input ref={photoInput} type="file" accept="image/*" multiple className="hidden" onChange={uploadPhoto} />
             </div>
-
             {photos.length === 0 ? (
               <div className="text-center py-16">
                 <p className="text-5xl mb-3">📸</p>
                 <p className="text-gray-400 text-sm">아직 사진이 없어요</p>
-                <p className="text-gray-300 text-xs mt-1">첫 번째 추억을 남겨보세요!</p>
+                <p className="text-gray-300 text-xs mt-1">여러 장 한번에 올릴 수 있어요!</p>
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-1.5">
                 {photos.map(p => (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img key={p.id} src={p.image_url} alt={p.album_title}
+                  <img key={p.id} src={p.image_url} alt=""
                     className="w-full aspect-square object-cover rounded-xl" />
                 ))}
               </div>
