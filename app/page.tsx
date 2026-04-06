@@ -361,7 +361,16 @@ export default function Page() {
         {tab === 'members' && (
           <div>
             <h2 className="font-black text-xl mb-1" style={{ color: '#7B5EA7' }}>함께조아</h2>
-            <p className="text-sm text-gray-400 mb-4">함께하는 {members.length}명의 소중한 가족</p>
+            <p className="text-sm text-gray-400 mb-2">함께하는 {members.length}명의 소중한 가족</p>
+            {selectedMember ? (
+              <div className="rounded-xl px-4 py-2.5 mb-4 text-xs" style={{ background: '#EDE6F5', color: '#7B5EA7' }}>
+                💡 내 이름 옆의 <span className="font-bold">수정</span> 버튼을 눌러 이름과 별명을 변경할 수 있어요
+              </div>
+            ) : (
+              <div className="rounded-xl px-4 py-2.5 mb-4 text-xs bg-yellow-50 text-yellow-700">
+                ⚠️ 조이조아 탭에서 먼저 이름을 선택하면 수정할 수 있어요
+              </div>
+            )}
             <div className="space-y-2">
               {members.map((m, i) => (
                 <div key={m.id} className="rounded-xl bg-white border border-purple-50 shadow-sm">
