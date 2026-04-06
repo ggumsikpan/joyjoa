@@ -38,6 +38,9 @@ export default function Page() {
   const [photos, setPhotos] = useState<Photo[]>([])
   const [selectedMember, setSelectedMember] = useState<string>('')
   const [uploading, setUploading] = useState(false)
+  const [bookQuery, setBookQuery] = useState('')
+  const [bookResults, setBookResults] = useState<{ id: string; title: string; authors: string[]; publisher: string; thumbnail: string; link: string; description: string }[]>([])
+  const [bookSearching, setBookSearching] = useState(false)
   const photoInput = useRef<HTMLInputElement>(null)
 
   // ── 이름 로컬 저장 ─────────────────────────────────────
@@ -127,6 +130,18 @@ export default function Page() {
   }
 
   const isRsvped = (eventId: string) => (eventRsvps[eventId] ?? []).some(r => r.member_id === selectedMember)
+
+  // ── 도서 검색 ──────────────────────────────────────────
+  const searchBooks = async () => {
+    if (!bookQuery.trim()) return
+    setBookSearching(true)
+    try {
+      const res = await fetch(`/api/books/search?q=${encodeURIComponent(bookQuery)}`)
+      const data = await res.json()
+      setBookResults(data.items ?? [])
+    } catch { setBookResults([]) }
+    setBookSearching(false)
+  }
 
   // ── 사진 업로드 ────────────────────────────────────────
   const uploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -423,30 +438,79 @@ export default function Page() {
         {tab === 'books' && (
           <div>
             <h2 className="font-black text-xl mb-1" style={{ color: '#7B5EA7' }}>소식조아</h2>
-            <p className="text-sm text-gray-400 mb-4">조이조아 작가들의 새 책</p>
-            {books.map(book => (
-              <div key={book.id} className="bg-white rounded-2xl p-5 shadow-sm border border-purple-50 mb-3">
-                <div className="flex gap-4">
-                  <div className="w-20 h-28 rounded-xl flex items-center justify-center shrink-0" style={{ background: book.color + '15' }}>
-                    {book.cover_url
-                      // eslint-disable-next-line @next/next/no-img-element
-                      ? <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover rounded-xl" />
-                      : <span className="text-3xl">📕</span>}
-                  </div>
-                  <div className="flex-1">
-                    <h3 className="font-black text-base mb-1">{book.title}</h3>
-                    <p className="text-xs font-medium mb-1" style={{ color: book.color }}>{book.author}</p>
-                    <p className="text-xs text-gray-400 leading-relaxed mb-3">{book.description}</p>
-                    {book.buy_link && (
-                      <a href={book.buy_link} target="_blank" rel="noopener noreferrer"
-                        className="text-xs font-bold px-4 py-1.5 rounded-lg text-white inline-block" style={{ background: book.color }}>
-                        구매하기
-                      </a>
-                    )}
-                  </div>
+            <p className="text-sm text-gray-400 mb-4">도서를 검색하고 추천해보세요</p>
+
+            {/* 검색 바 */}
+            <div className="flex gap-2 mb-5">
+              <input value={bookQuery} onChange={e => setBookQuery(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && searchBooks()}
+                placeholder="책 제목, 작가명 검색..."
+                className="flex-1 border-2 border-purple-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#7B5EA7]" />
+              <button onClick={searchBooks} disabled={bookSearching}
+                className="px-5 py-2.5 rounded-xl text-white font-bold text-sm shrink-0 disabled:opacity-50"
+                style={{ background: '#7B5EA7' }}>
+                {bookSearching ? '...' : '검색'}
+              </button>
+            </div>
+
+            {/* 검색 결과 */}
+            {bookResults.length > 0 && (
+              <div className="mb-6">
+                <p className="text-xs font-bold text-gray-400 mb-2">검색 결과 {bookResults.length}건</p>
+                <div className="space-y-2">
+                  {bookResults.map(b => (
+                    <a key={b.id} href={b.link} target="_blank" rel="noopener noreferrer"
+                      className="flex gap-3 p-3 bg-white rounded-xl border border-purple-50 shadow-sm hover:shadow-md hover:border-purple-200 transition-all">
+                      {b.thumbnail ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={b.thumbnail} alt={b.title} className="w-14 h-20 object-cover rounded-lg shrink-0 shadow-sm" />
+                      ) : (
+                        <div className="w-14 h-20 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#EDE6F5' }}>
+                          <span className="text-xl">📚</span>
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm truncate">{b.title}</h4>
+                        <p className="text-xs mt-0.5" style={{ color: '#7B5EA7' }}>{b.authors.join(', ')}</p>
+                        {b.publisher && <p className="text-xs text-gray-400 mt-0.5">{b.publisher}</p>}
+                        {b.description && <p className="text-xs text-gray-300 mt-1 line-clamp-2">{b.description}</p>}
+                      </div>
+                      <span className="text-xs text-gray-300 shrink-0 self-center">→</span>
+                    </a>
+                  ))}
                 </div>
               </div>
-            ))}
+            )}
+
+            {/* DB에 저장된 추천 도서 */}
+            {books.length > 0 && (
+              <div>
+                <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">📚 추천 도서</p>
+                {books.map(book => (
+                  <div key={book.id} className="bg-white rounded-2xl p-5 shadow-sm border border-purple-50 mb-3">
+                    <div className="flex gap-4">
+                      <div className="w-16 h-22 rounded-xl flex items-center justify-center shrink-0" style={{ background: book.color + '15' }}>
+                        {book.cover_url
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={book.cover_url} alt={book.title} className="w-full h-full object-cover rounded-xl" />
+                          : <span className="text-2xl">📕</span>}
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-black text-base mb-1">{book.title}</h3>
+                        <p className="text-xs font-medium mb-1" style={{ color: book.color }}>{book.author}</p>
+                        <p className="text-xs text-gray-400 leading-relaxed">{book.description}</p>
+                        {book.buy_link && (
+                          <a href={book.buy_link} target="_blank" rel="noopener noreferrer"
+                            className="text-xs font-bold px-4 py-1.5 rounded-lg text-white inline-block mt-2" style={{ background: book.color }}>
+                            구매하기
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
