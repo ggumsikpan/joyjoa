@@ -683,6 +683,11 @@ export default function Page() {
             })}
           </div>
         )}
+        {/* ═══ 저작권 ═══ */}
+        <div className="text-center py-6 mt-8">
+          <p className="text-xs text-gray-300">© 2026 조이조아 · All rights reserved.</p>
+          <p className="text-xs text-gray-300 mt-0.5">홈페이지 제작 · <span style={{ color: '#A78BCA' }}>꿈식판 꿈식맨</span></p>
+        </div>
       </main>
 
       {/* ── 하단 탭 바 ── */}
