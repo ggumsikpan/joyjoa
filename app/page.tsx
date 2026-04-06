@@ -24,7 +24,11 @@ const TABS: { id: TabId; icon: string; label: string }[] = [
   { id: 'share', icon: '🎁', label: '나눔조아' },
 ]
 
-const today = () => new Date().toISOString().slice(0, 10)
+const today = () => {
+  const now = new Date()
+  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
+  return kst.toISOString().slice(0, 10)
+}
 
 export default function Page() {
   const [tab, setTab] = useState<TabId>('home')
@@ -46,6 +50,8 @@ export default function Page() {
   const [showNewAlbum, setShowNewAlbum] = useState(false)
   const [selectedMember, setSelectedMember] = useState<string>('')
   const [uploading, setUploading] = useState(false)
+  const [morningUploading, setMorningUploading] = useState(false)
+  const [morningResult, setMorningResult] = useState<{ total: number; inserted: number; skipped: number; summary: { date: string; count: number; names: string[] }[] } | null>(null)
   const [editingProfile, setEditingProfile] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editNickname, setEditNickname] = useState('')
@@ -88,10 +94,12 @@ export default function Page() {
   const loadRecentMornings = useCallback(async () => {
     const days: { date: string; count: number }[] = []
     for (let i = 0; i < 5; i++) {
-      const d = new Date(); d.setDate(d.getDate() - i)
-      const dateStr = d.toISOString().slice(0, 10)
+      const now = new Date()
+      const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
+      kst.setDate(kst.getDate() - i)
+      const dateStr = kst.toISOString().slice(0, 10)
       const { count } = await supabase.from('mornings').select('*', { count: 'exact', head: true }).eq('date', dateStr)
-      days.push({ date: `${d.getMonth() + 1}/${d.getDate()}`, count: count ?? 0 })
+      days.push({ date: `${kst.getMonth() + 1}/${kst.getDate()}`, count: count ?? 0 })
     }
     setRecentMornings(days)
   }, [])
@@ -294,6 +302,33 @@ export default function Page() {
     await loadAlbums()
   }
 
+  // ── 카톡 대화 업로드 → 조모닝 파싱 ────────────────────────
+  const uploadMorningChat = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setMorningUploading(true)
+    setMorningResult(null)
+
+    const formData = new FormData()
+    formData.append('file', file)
+
+    try {
+      const res = await fetch('/api/mornings/parse', { method: 'POST', body: formData })
+      const data = await res.json()
+      if (res.ok) {
+        setMorningResult(data)
+        await loadTodayMornings()
+        await loadRecentMornings()
+      } else {
+        alert(data.error || '업로드에 실패했습니다.')
+      }
+    } catch {
+      alert('업로드 중 오류가 발생했습니다.')
+    }
+    setMorningUploading(false)
+    e.target.value = ''
+  }
+
   // ── 프로필 수정 ─────────────────────────────────────────
   const startEditProfile = (m: Member) => {
     setEditingProfile(m.id)
@@ -431,6 +466,24 @@ export default function Page() {
                 {todayMorningNames.map((n, i) => (
                   <span key={i} className="px-3 py-1 rounded-full text-xs font-medium" style={{ background: '#EDE6F5', color: '#7B5EA7' }}>{n}</span>
                 ))}
+              </div>
+
+              {/* 카톡 대화 업로드 */}
+              <div className="mt-4 pt-3 border-t border-purple-100">
+                <label className="flex items-center justify-center gap-2 cursor-pointer text-xs font-medium px-4 py-2.5 rounded-xl border-2 border-dashed border-purple-200 hover:border-[#7B5EA7] hover:bg-purple-50 transition-all"
+                  style={{ color: '#7B5EA7' }}>
+                  {morningUploading ? '분석 중...' : '📂 카톡 대화 내보내기 파일로 조모닝 업데이트'}
+                  <input type="file" accept=".txt" className="hidden" onChange={uploadMorningChat} disabled={morningUploading} />
+                </label>
+                {morningResult && (
+                  <div className="mt-3 p-3 rounded-xl text-xs" style={{ background: '#F0FFF4', color: '#2D6A4F' }}>
+                    <p className="font-bold mb-1">업데이트 완료!</p>
+                    <p>총 {morningResult.total}건 발견 / {morningResult.inserted}건 새로 추가 / {morningResult.skipped}건 이미 등록</p>
+                    {morningResult.summary.map(s => (
+                      <p key={s.date} className="mt-1">{s.date}: {s.count}명 ({s.names.join(', ')})</p>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
