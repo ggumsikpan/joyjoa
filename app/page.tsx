@@ -131,7 +131,7 @@ export default function Page() {
   }, [])
 
   const loadPhotos = useCallback(async (albumId?: string) => {
-    let query = supabase.from('photos').select('*').order('created_at', { ascending: false })
+    let query = supabase.from('photos').select('*').order('created_at', { ascending: true })
     if (albumId) query = query.eq('album_id', albumId)
     const { data } = await query
     if (data) setPhotos(data)
