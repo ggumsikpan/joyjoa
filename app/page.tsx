@@ -43,6 +43,9 @@ export default function Page() {
   const [showNewAlbum, setShowNewAlbum] = useState(false)
   const [selectedMember, setSelectedMember] = useState<string>('')
   const [uploading, setUploading] = useState(false)
+  const [editingProfile, setEditingProfile] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editNickname, setEditNickname] = useState('')
   const [bookQuery, setBookQuery] = useState('')
   const [bookResults, setBookResults] = useState<{ id: string; title: string; authors: string[]; publisher: string; thumbnail: string; link: string; description: string }[]>([])
   const [bookSearching, setBookSearching] = useState(false)
@@ -234,6 +237,19 @@ export default function Page() {
     await loadAlbums()
   }
 
+  // ── 프로필 수정 ─────────────────────────────────────────
+  const startEditProfile = (m: Member) => {
+    setEditingProfile(m.id)
+    setEditName(m.name)
+    setEditNickname(m.nickname ?? '')
+  }
+  const saveProfile = async () => {
+    if (!editingProfile || !editName.trim()) return
+    await supabase.from('members').update({ name: editName.trim(), nickname: editNickname.trim() || null }).eq('id', editingProfile)
+    setEditingProfile(null)
+    await loadMembers()
+  }
+
   // ── 헬퍼 ──────────────────────────────────────────────
   const memberName = (id: string) => members.find(m => m.id === id)?.name ?? ''
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -348,17 +364,41 @@ export default function Page() {
             <p className="text-sm text-gray-400 mb-4">함께하는 {members.length}명의 소중한 가족</p>
             <div className="space-y-2">
               {members.map((m, i) => (
-                <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-purple-50 shadow-sm">
-                  <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
-                    style={{ background: m.is_author ? '#7B5EA7' : '#EDE6F5', color: m.is_author ? 'white' : '#7B5EA7' }}>
-                    {m.name[0]}
+                <div key={m.id} className="rounded-xl bg-white border border-purple-50 shadow-sm">
+                  <div className="flex items-center gap-3 p-3">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
+                      style={{ background: m.is_author ? '#7B5EA7' : '#EDE6F5', color: m.is_author ? 'white' : '#7B5EA7' }}>
+                      {m.name[0]}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-sm">{m.name}</p>
+                      {m.nickname && <p className="text-xs text-gray-400">💬 {m.nickname}</p>}
+                      {m.is_author && <p className="text-xs" style={{ color: '#7B5EA7' }}>✨ 작가님</p>}
+                    </div>
+                    {m.id === selectedMember && editingProfile !== m.id && (
+                      <button onClick={() => startEditProfile(m)} className="text-xs px-2 py-1 rounded-lg border border-purple-200 text-[#7B5EA7] font-medium">수정</button>
+                    )}
+                    {m.id !== selectedMember && <span className="text-xs text-gray-300">#{i + 1}</span>}
                   </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-sm">{m.name}</p>
-                    {m.nickname && <p className="text-xs text-gray-400">💬 {m.nickname}</p>}
-                    {m.is_author && <p className="text-xs" style={{ color: '#7B5EA7' }}>✨ 작가님</p>}
-                  </div>
-                  <span className="text-xs text-gray-300">#{i + 1}</span>
+                  {/* 수정 폼 */}
+                  {editingProfile === m.id && (
+                    <div className="px-3 pb-3 space-y-2">
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">이름</label>
+                        <input value={editName} onChange={e => setEditName(e.target.value)}
+                          className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7B5EA7]" />
+                      </div>
+                      <div>
+                        <label className="text-xs text-gray-400 mb-1 block">별명 (카톡 대화명 등)</label>
+                        <input value={editNickname} onChange={e => setEditNickname(e.target.value)} placeholder="선택사항"
+                          className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7B5EA7]" />
+                      </div>
+                      <div className="flex gap-2">
+                        <button onClick={saveProfile} className="flex-1 text-sm font-bold py-2 rounded-lg text-white" style={{ background: '#7B5EA7' }}>저장</button>
+                        <button onClick={() => setEditingProfile(null)} className="flex-1 text-sm font-bold py-2 rounded-lg border border-gray-200 text-gray-500">취소</button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
