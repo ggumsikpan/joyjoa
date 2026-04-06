@@ -12,6 +12,7 @@ type Book = { id: string; title: string; author: string; description: string; co
 type Share = { id: string; title: string; description: string; status: string; created_at: string; shared_by: string; members?: { name: string } }
 type Album = { id: string; title: string; description: string; cover_url: string | null; created_at: string; photo_count?: number }
 type Photo = { id: string; album_id: string; album_title: string; image_url: string; created_at: string }
+type VolunteerLog = { id: string; title: string; log_date: string; summary: string; content: string; created_at: string }
 
 type TabId = 'home' | 'members' | 'events' | 'photos' | 'books' | 'share'
 const TABS: { id: TabId; icon: string; label: string }[] = [
@@ -36,6 +37,8 @@ export default function Page() {
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null)
   const [books, setBooks] = useState<Book[]>([])
   const [shares, setShares] = useState<Share[]>([])
+  const [volunteerLogs, setVolunteerLogs] = useState<VolunteerLog[]>([])
+  const [openLog, setOpenLog] = useState<VolunteerLog | null>(null)
   const [albums, setAlbums] = useState<Album[]>([])
   const [photos, setPhotos] = useState<Photo[]>([])
   const [openAlbum, setOpenAlbum] = useState<Album | null>(null)
@@ -117,6 +120,11 @@ export default function Page() {
     if (data) setShares(data)
   }, [])
 
+  const loadVolunteerLogs = useCallback(async () => {
+    const { data } = await supabase.from('volunteer_logs').select('*').order('log_date', { ascending: false })
+    if (data) setVolunteerLogs(data)
+  }, [])
+
   const loadAlbums = useCallback(async () => {
     const { data } = await supabase.from('albums').select('*').order('created_at', { ascending: false })
     if (data) {
@@ -143,8 +151,8 @@ export default function Page() {
 
   useEffect(() => {
     loadMembers(); loadTodayMornings(); loadRecentMornings()
-    loadEvents(); loadAllRsvps(); loadBooks(); loadShares(); loadAlbums(); loadPhotos()
-  }, [loadMembers, loadTodayMornings, loadRecentMornings, loadEvents, loadAllRsvps, loadBooks, loadShares, loadAlbums, loadPhotos])
+    loadEvents(); loadAllRsvps(); loadBooks(); loadShares(); loadAlbums(); loadPhotos(); loadVolunteerLogs()
+  }, [loadMembers, loadTodayMornings, loadRecentMornings, loadEvents, loadAllRsvps, loadBooks, loadShares, loadAlbums, loadPhotos, loadVolunteerLogs])
 
 
   // ── 꼬리달기 (참여 신청 / 취소) ────────────────────────
@@ -759,10 +767,33 @@ export default function Page() {
         )}
 
         {/* ═══ 나눔조아 ═══ */}
-        {tab === 'share' && (
+        {tab === 'share' && !openLog && (
           <div>
             <h2 className="font-black text-xl mb-1" style={{ color: '#7B5EA7' }}>나눔조아</h2>
             <p className="text-sm text-gray-400 mb-4">서로 나누면 더 커지는 기쁨</p>
+
+            {/* 봉사활동 기록 */}
+            {volunteerLogs.length > 0 && (
+              <div className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: '#4A8C6F' }}>🤝 봉사활동 기록</p>
+                {volunteerLogs.map(log => (
+                  <button key={log.id} onClick={() => setOpenLog(log)}
+                    className="w-full text-left bg-white rounded-2xl p-4 shadow-sm border border-purple-50 mb-3 hover:shadow-md transition-all">
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style={{ background: '#4A8C6F15' }}>🤝</div>
+                      <div className="flex-1">
+                        <h3 className="font-black text-sm">{log.title}</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">📅 {log.log_date}</p>
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{log.summary}</p>
+                      </div>
+                      <span className="text-gray-300 text-xs shrink-0">→</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <p className="text-xs font-bold uppercase tracking-wider mb-3" style={{ color: '#7B5EA7' }}>🎁 나눔</p>
             {shares.length === 0 && (
               <div className="text-center py-16">
                 <p className="text-5xl mb-3">🎁</p>
@@ -786,6 +817,34 @@ export default function Page() {
                 </div>
               )
             })}
+          </div>
+        )}
+        {/* ═══ 봉사 기록 상세 ═══ */}
+        {tab === 'share' && openLog && (
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <button onClick={() => setOpenLog(null)}
+                className="w-8 h-8 rounded-full flex items-center justify-center text-lg" style={{ background: '#EDE6F5', color: '#7B5EA7' }}>←</button>
+              <div className="flex-1">
+                <h2 className="font-black text-lg" style={{ color: '#4A8C6F' }}>{openLog.title}</h2>
+                <p className="text-xs text-gray-400">📅 {openLog.log_date}</p>
+              </div>
+            </div>
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-purple-50">
+              <p className="text-sm font-bold mb-3" style={{ color: '#7B5EA7' }}>{openLog.summary}</p>
+              <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                {openLog.content?.split('\n').map((line, i) => {
+                  if (line.startsWith('## ')) return <h3 key={i} className="font-black text-base mt-4 mb-2" style={{ color: '#4A8C6F' }}>{line.replace('## ', '')}</h3>
+                  if (line.startsWith('- **')) {
+                    const match = line.match(/- \*\*(.+?)\*\*: (.+)/)
+                    if (match) return <p key={i} className="mb-1.5"><span className="font-bold" style={{ color: '#7B5EA7' }}>{match[1]}</span>: {match[2]}</p>
+                  }
+                  if (line.startsWith('- ')) return <p key={i} className="mb-1 pl-3">• {line.slice(2)}</p>
+                  if (line.trim() === '') return <br key={i} />
+                  return <p key={i} className="mb-1">{line}</p>
+                })}
+              </div>
+            </div>
           </div>
         )}
         {/* ═══ 저작권 ═══ */}
