@@ -250,6 +250,22 @@ export default function Page() {
     await loadMembers()
   }
 
+  // ── 모임 공유 ───────────────────────────────────────────
+  const shareEvent = async (ev: Event) => {
+    const d = new Date(ev.event_date)
+    const dateStr = `${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`
+    const rsvps = eventRsvps[ev.id] ?? []
+    const names = rsvps.map((r, i) => `${i+1}. ${rsvpName(r)}`).join('\n')
+    const text = `📅 ${ev.title}\n📍 ${ev.place ?? '추후 공지'}\n🕐 ${dateStr}\n👥 참여 ${rsvps.length}/${ev.capacity}\n${ev.event_note ? `🎤 ${ev.event_note}\n` : ''}${ev.description ? `\n${ev.description}\n` : ''}\n${names ? `\n꼬리달기 현황:\n${names}` : ''}\n\n👉 참여 신청: ${window.location.href}`
+
+    if (navigator.share) {
+      try { await navigator.share({ title: ev.title, text }) } catch { /* 취소 */ }
+    } else {
+      await navigator.clipboard.writeText(text)
+      alert('모임 정보가 복사되었어요! 카톡에 붙여넣기 하세요 📋')
+    }
+  }
+
   // ── 헬퍼 ──────────────────────────────────────────────
   const memberName = (id: string) => members.find(m => m.id === id)?.name ?? ''
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -437,7 +453,15 @@ export default function Page() {
                     <div className="flex items-start gap-3">
                       <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shrink-0" style={{ background: ev.color + '15' }}>{ev.emoji}</div>
                       <div className="flex-1">
-                        <h3 className="font-black text-base">{ev.title}</h3>
+                        <div className="flex items-start justify-between">
+                          <h3 className="font-black text-base">{ev.title}</h3>
+                          <button onClick={() => shareEvent(ev)} title="카톡에 공유하기"
+                            className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 hover:bg-purple-50 transition-all" style={{ color: '#7B5EA7' }}>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
+                            </svg>
+                          </button>
+                        </div>
                         {ev.place && <p className="text-sm text-gray-500 mt-1">📍 {ev.place}</p>}
                         <p className="text-sm text-gray-500">🕐 {dateStr}</p>
                         {ev.description && <p className="text-xs text-gray-400 mt-1">{ev.description}</p>}
