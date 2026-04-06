@@ -146,13 +146,15 @@ export default function Page() {
   // ── 꼬리달기 (참여 신청 / 취소) ────────────────────────
   const rsvpEvent = async (eventId: string) => {
     if (!selectedMember) { alert('먼저 조이조아 탭에서 이름을 선택해주세요!'); return }
-    await supabase.from('event_rsvps').insert({ event_id: eventId, member_id: selectedMember })
+    const { error } = await supabase.from('event_rsvps').insert({ event_id: eventId, member_id: selectedMember })
+    if (error) { alert('참여 신청 실패: ' + error.message); return }
     await loadEventRsvps(eventId)
   }
 
   const cancelRsvp = async (eventId: string) => {
     if (!selectedMember) return
-    await supabase.from('event_rsvps').delete().eq('event_id', eventId).eq('member_id', selectedMember)
+    const { error } = await supabase.from('event_rsvps').delete().eq('event_id', eventId).eq('member_id', selectedMember)
+    if (error) { alert('취소 실패: ' + error.message); return }
     await loadEventRsvps(eventId)
   }
 
@@ -245,9 +247,11 @@ export default function Page() {
   }
   const saveProfile = async () => {
     if (!editingProfile || !editName.trim()) return
-    await supabase.from('members').update({ name: editName.trim(), nickname: editNickname.trim() || null }).eq('id', editingProfile)
+    const { error } = await supabase.from('members').update({ name: editName.trim(), nickname: editNickname.trim() || null }).eq('id', editingProfile)
+    if (error) { alert('수정 실패: ' + error.message); return }
     setEditingProfile(null)
     await loadMembers()
+    alert('수정 완료!')
   }
 
   // ── 모임 공유 ───────────────────────────────────────────
