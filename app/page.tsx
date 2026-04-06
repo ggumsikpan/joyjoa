@@ -71,7 +71,11 @@ export default function Page() {
     if (data) {
       setTodayMornings(data)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setTodayMorningNames(data.map((m: any) => m.members?.name ?? ''))
+      setTodayMorningNames(data.map((m: any) => {
+        const name = m.members?.name ?? ''
+        const mem = members.find(mb => mb.name === name)
+        return mem?.nickname ? `${name}(${mem.nickname})` : name
+      }))
     }
   }, [])
 
@@ -287,9 +291,18 @@ export default function Page() {
   }
 
   // ── 헬퍼 ──────────────────────────────────────────────
-  const memberName = (id: string) => members.find(m => m.id === id)?.name ?? ''
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const rsvpName = (r: Rsvp) => (r as any).members?.name ?? ''
+  const memberName = (id: string) => {
+    const m = members.find(m => m.id === id)
+    if (!m) return ''
+    return m.nickname ? `${m.name}(${m.nickname})` : m.name
+  }
+  const rsvpName = (r: Rsvp) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const name = (r as any).members?.name ?? ''
+    // rsvp에는 nickname이 없으므로 members에서 찾기
+    const m = members.find(m => m.name === name)
+    return m?.nickname ? `${name}(${m.nickname})` : name
+  }
 
   return (
     <div className="max-w-lg mx-auto min-h-screen flex flex-col" style={{ background: '#FAF8FF' }}>
@@ -416,8 +429,7 @@ export default function Page() {
                       {m.name[0]}
                     </div>
                     <div className="flex-1">
-                      <p className="font-bold text-sm">{m.name}</p>
-                      {m.nickname && <p className="text-xs text-gray-400">💬 {m.nickname}</p>}
+                      <p className="font-bold text-sm">{m.nickname ? `${m.name}(${m.nickname})` : m.name}</p>
                       {m.is_author && <p className="text-xs" style={{ color: '#7B5EA7' }}>✨ 작가님</p>}
                     </div>
                     {m.id === selectedMember && editingProfile !== m.id && (
