@@ -36,7 +36,6 @@ export default function Page() {
   const [books, setBooks] = useState<Book[]>([])
   const [shares, setShares] = useState<Share[]>([])
   const [photos, setPhotos] = useState<Photo[]>([])
-  const [morningDone, setMorningDone] = useState(false)
   const [selectedMember, setSelectedMember] = useState<string>('')
   const [uploading, setUploading] = useState(false)
   const photoInput = useRef<HTMLInputElement>(null)
@@ -113,19 +112,6 @@ export default function Page() {
     loadEvents(); loadAllRsvps(); loadBooks(); loadShares(); loadPhotos()
   }, [loadMembers, loadTodayMornings, loadRecentMornings, loadEvents, loadAllRsvps, loadBooks, loadShares, loadPhotos])
 
-  // 이미 조모닝 했는지 체크
-  useEffect(() => {
-    if (selectedMember && todayMornings.length > 0) {
-      setMorningDone(todayMornings.some(m => m.member_id === selectedMember))
-    }
-  }, [selectedMember, todayMornings])
-
-  // ── 조모닝 ─────────────────────────────────────────────
-  const doMorning = async () => {
-    if (!selectedMember || morningDone) return
-    const { error } = await supabase.from('mornings').insert({ member_id: selectedMember, date: today() })
-    if (!error) { setMorningDone(true); loadTodayMornings(); loadRecentMornings() }
-  }
 
   // ── 꼬리달기 (참여 신청 / 취소) ────────────────────────
   const rsvpEvent = async (eventId: string) => {
@@ -206,14 +192,17 @@ export default function Page() {
               </div>
             )}
 
-            {/* 조모닝 */}
-            <div className="rounded-2xl p-6 text-center mb-5" style={{ background: 'linear-gradient(135deg, #7B5EA7, #A78BCA)' }}>
-              <p className="text-white/80 text-sm mb-2">오늘도 좋은 아침!</p>
-              <button onClick={doMorning} disabled={morningDone || !selectedMember}
-                className="bg-white font-black text-lg px-8 py-3 rounded-2xl shadow-lg transition-all disabled:opacity-60" style={{ color: '#7B5EA7' }}>
-                {morningDone ? '✅ 조모닝 완료!' : '☀️ 조모닝!'}
-              </button>
-              <p className="text-white/70 text-xs mt-2">오늘 {todayMornings.length}명이 인사했어요</p>
+            {/* 조모닝 현황 */}
+            <div className="rounded-2xl p-5 mb-5" style={{ background: 'linear-gradient(135deg, #7B5EA7, #A78BCA)' }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-white font-black text-lg">☀️ 오늘의 조모닝</p>
+                  <p className="text-white/70 text-sm mt-1">오늘 {todayMornings.length}명이 카톡에서 인사했어요</p>
+                </div>
+                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+                  <span className="text-white font-black text-2xl">{todayMornings.length}</span>
+                </div>
+              </div>
             </div>
 
             {/* 최근 5일 */}
