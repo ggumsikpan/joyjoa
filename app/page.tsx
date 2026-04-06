@@ -168,18 +168,18 @@ export default function Page() {
   const rsvpName = (r: Rsvp) => (r as any).members?.name ?? ''
 
   return (
-    <div className="max-w-lg mx-auto min-h-screen flex flex-col" style={{ background: '#FFF9F5' }}>
+    <div className="max-w-lg mx-auto min-h-screen flex flex-col" style={{ background: '#FAF8FF' }}>
       {/* ── 헤더 ── */}
       <header className="px-5 pt-6 pb-3">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-black" style={{ color: '#E8846B' }}>조이조아</h1>
+            <h1 className="text-2xl font-black" style={{ color: '#7B5EA7' }}>조이조아</h1>
             <p className="text-xs text-gray-400 mt-0.5">JoyJoa · 따뜻한 연대의 아지트</p>
           </div>
           {selectedMember && (
             <div className="flex items-center gap-2">
               <span className="text-xs text-gray-500 font-medium">{memberName(selectedMember)}</span>
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#F5E6DF', color: '#E8846B' }}>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold" style={{ background: '#EDE6F5', color: '#7B5EA7' }}>
                 {memberName(selectedMember)?.[0]}
               </div>
             </div>
@@ -195,11 +195,11 @@ export default function Page() {
           <div>
             {/* 멤버 선택 */}
             {!selectedMember && (
-              <div className="rounded-2xl bg-white p-5 shadow-sm border border-orange-50 mb-5">
-                <p className="font-black text-base mb-2" style={{ color: '#E8846B' }}>먼저 이름을 선택해주세요</p>
+              <div className="rounded-2xl bg-white p-5 shadow-sm border border-purple-50 mb-5">
+                <p className="font-black text-base mb-2" style={{ color: '#7B5EA7' }}>먼저 이름을 선택해주세요</p>
                 <p className="text-xs text-gray-400 mb-3">한 번 선택하면 기억됩니다 (카톡 인앱 브라우저에서도 OK!)</p>
                 <select value={selectedMember} onChange={e => setSelectedMember(e.target.value)}
-                  className="w-full border-2 border-orange-200 rounded-xl px-4 py-3 text-base font-medium focus:outline-none focus:border-[#E8846B]">
+                  className="w-full border-2 border-purple-200 rounded-xl px-4 py-3 text-base font-medium focus:outline-none focus:border-[#7B5EA7]">
                   <option value="">-- 이름 선택 --</option>
                   {members.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
                 </select>
@@ -207,23 +207,23 @@ export default function Page() {
             )}
 
             {/* 조모닝 */}
-            <div className="rounded-2xl p-6 text-center mb-5" style={{ background: 'linear-gradient(135deg, #E8846B, #F5A891)' }}>
+            <div className="rounded-2xl p-6 text-center mb-5" style={{ background: 'linear-gradient(135deg, #7B5EA7, #A78BCA)' }}>
               <p className="text-white/80 text-sm mb-2">오늘도 좋은 아침!</p>
               <button onClick={doMorning} disabled={morningDone || !selectedMember}
-                className="bg-white font-black text-lg px-8 py-3 rounded-2xl shadow-lg transition-all disabled:opacity-60" style={{ color: '#E8846B' }}>
+                className="bg-white font-black text-lg px-8 py-3 rounded-2xl shadow-lg transition-all disabled:opacity-60" style={{ color: '#7B5EA7' }}>
                 {morningDone ? '✅ 조모닝 완료!' : '☀️ 조모닝!'}
               </button>
               <p className="text-white/70 text-xs mt-2">오늘 {todayMornings.length}명이 인사했어요</p>
             </div>
 
             {/* 최근 5일 */}
-            <div className="rounded-2xl bg-white p-5 shadow-sm border border-orange-50 mb-5">
-              <h3 className="font-black text-base mb-3" style={{ color: '#E8846B' }}>최근 조모닝 현황</h3>
+            <div className="rounded-2xl bg-white p-5 shadow-sm border border-purple-50 mb-5">
+              <h3 className="font-black text-base mb-3" style={{ color: '#7B5EA7' }}>최근 조모닝 현황</h3>
               <div className="flex gap-2">
                 {recentMornings.map((d, i) => (
                   <div key={i} className="flex-1 text-center">
-                    <div className="rounded-xl py-2 mb-1" style={{ background: i === 0 ? '#E8846B' : '#F5E6DF' }}>
-                      <p className="font-black text-lg" style={{ color: i === 0 ? 'white' : '#E8846B' }}>{d.count}</p>
+                    <div className="rounded-xl py-2 mb-1" style={{ background: i === 0 ? '#7B5EA7' : '#EDE6F5' }}>
+                      <p className="font-black text-lg" style={{ color: i === 0 ? 'white' : '#7B5EA7' }}>{d.count}</p>
                     </div>
                     <p className="text-xs text-gray-400">{d.date}</p>
                   </div>
@@ -232,20 +232,20 @@ export default function Page() {
             </div>
 
             {/* 오늘 조모닝 명단 */}
-            <div className="rounded-2xl bg-white p-5 shadow-sm border border-orange-50 mb-5">
-              <h3 className="font-black text-base mb-3" style={{ color: '#E8846B' }}>오늘의 조모닝 멤버</h3>
+            <div className="rounded-2xl bg-white p-5 shadow-sm border border-purple-50 mb-5">
+              <h3 className="font-black text-base mb-3" style={{ color: '#7B5EA7' }}>오늘의 조모닝 멤버</h3>
               <div className="flex flex-wrap gap-2">
                 {todayMorningNames.length === 0 && <p className="text-sm text-gray-300">아직 아무도 인사하지 않았어요</p>}
                 {todayMorningNames.map((n, i) => (
-                  <span key={i} className="px-3 py-1 rounded-full text-xs font-medium" style={{ background: '#F5E6DF', color: '#E8846B' }}>{n}</span>
+                  <span key={i} className="px-3 py-1 rounded-full text-xs font-medium" style={{ background: '#EDE6F5', color: '#7B5EA7' }}>{n}</span>
                 ))}
               </div>
             </div>
 
             {/* 다가오는 모임 */}
             {events.length > 0 && (
-              <div className="rounded-2xl bg-white p-5 shadow-sm border border-orange-50">
-                <h3 className="font-black text-base mb-3" style={{ color: '#7B6CA5' }}>다가오는 모임</h3>
+              <div className="rounded-2xl bg-white p-5 shadow-sm border border-purple-50">
+                <h3 className="font-black text-base mb-3" style={{ color: '#4A8C6F' }}>다가오는 모임</h3>
                 {events.slice(0, 2).map(ev => {
                   const d = new Date(ev.event_date)
                   const rsvps = eventRsvps[ev.id] ?? []
@@ -267,18 +267,18 @@ export default function Page() {
         {/* ═══ 함께조아 ═══ */}
         {tab === 'members' && (
           <div>
-            <h2 className="font-black text-xl mb-1" style={{ color: '#E8846B' }}>함께조아</h2>
+            <h2 className="font-black text-xl mb-1" style={{ color: '#7B5EA7' }}>함께조아</h2>
             <p className="text-sm text-gray-400 mb-4">함께하는 {members.length}명의 소중한 가족</p>
             <div className="space-y-2">
               {members.map((m, i) => (
-                <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-orange-50 shadow-sm">
+                <div key={m.id} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-purple-50 shadow-sm">
                   <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold"
-                    style={{ background: m.is_author ? '#E8846B' : '#F5E6DF', color: m.is_author ? 'white' : '#E8846B' }}>
+                    style={{ background: m.is_author ? '#7B5EA7' : '#EDE6F5', color: m.is_author ? 'white' : '#7B5EA7' }}>
                     {m.name[0]}
                   </div>
                   <div className="flex-1">
                     <p className="font-bold text-sm">{m.name}</p>
-                    {m.is_author && <p className="text-xs" style={{ color: '#E8846B' }}>✨ 작가님</p>}
+                    {m.is_author && <p className="text-xs" style={{ color: '#7B5EA7' }}>✨ 작가님</p>}
                   </div>
                   <span className="text-xs text-gray-300">#{i + 1}</span>
                 </div>
@@ -290,7 +290,7 @@ export default function Page() {
         {/* ═══ 모임조아 (꼬리달기 고도화) ═══ */}
         {tab === 'events' && (
           <div>
-            <h2 className="font-black text-xl mb-1" style={{ color: '#E8846B' }}>모임조아</h2>
+            <h2 className="font-black text-xl mb-1" style={{ color: '#7B5EA7' }}>모임조아</h2>
             <p className="text-sm text-gray-400 mb-4">함께하면 더 즐거운 시간</p>
             {events.length === 0 && <p className="text-sm text-gray-300 text-center py-10">아직 등록된 모임이 없어요</p>}
             {events.map(ev => {
@@ -304,7 +304,7 @@ export default function Page() {
               const isFull = rsvps.length >= ev.capacity
 
               return (
-                <div key={ev.id} className="bg-white rounded-2xl shadow-sm border border-orange-50 mb-4 overflow-hidden">
+                <div key={ev.id} className="bg-white rounded-2xl shadow-sm border border-purple-50 mb-4 overflow-hidden">
                   {/* 헤더 */}
                   <div className="p-5">
                     <div className="flex items-start gap-3">
@@ -352,7 +352,7 @@ export default function Page() {
 
                   {/* 꼬리달기 명단 (확장) */}
                   {isExpanded && (
-                    <div className="border-t border-orange-50 px-5 py-4" style={{ background: '#FFFAF7' }}>
+                    <div className="border-t border-purple-50 px-5 py-4" style={{ background: '#F8F5FF' }}>
                       {/* 확정 명단 */}
                       {confirmed.length > 0 && (
                         <div className="mb-3">
@@ -401,11 +401,11 @@ export default function Page() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="font-black text-xl" style={{ color: '#E8846B' }}>추억조아</h2>
+                <h2 className="font-black text-xl" style={{ color: '#7B5EA7' }}>추억조아</h2>
                 <p className="text-sm text-gray-400">함께한 순간들</p>
               </div>
               <button onClick={() => photoInput.current?.click()} disabled={uploading}
-                className="text-xs font-bold px-4 py-2 rounded-xl text-white disabled:opacity-50" style={{ background: '#E8846B' }}>
+                className="text-xs font-bold px-4 py-2 rounded-xl text-white disabled:opacity-50" style={{ background: '#7B5EA7' }}>
                 {uploading ? '업로드 중...' : '+ 사진 올리기'}
               </button>
               <input ref={photoInput} type="file" accept="image/*" className="hidden" onChange={uploadPhoto} />
@@ -432,10 +432,10 @@ export default function Page() {
         {/* ═══ 소식조아 ═══ */}
         {tab === 'books' && (
           <div>
-            <h2 className="font-black text-xl mb-1" style={{ color: '#E8846B' }}>소식조아</h2>
+            <h2 className="font-black text-xl mb-1" style={{ color: '#7B5EA7' }}>소식조아</h2>
             <p className="text-sm text-gray-400 mb-4">조이조아 작가들의 새 책</p>
             {books.map(book => (
-              <div key={book.id} className="bg-white rounded-2xl p-5 shadow-sm border border-orange-50 mb-3">
+              <div key={book.id} className="bg-white rounded-2xl p-5 shadow-sm border border-purple-50 mb-3">
                 <div className="flex gap-4">
                   <div className="w-20 h-28 rounded-xl flex items-center justify-center shrink-0" style={{ background: book.color + '15' }}>
                     {book.cover_url
@@ -463,7 +463,7 @@ export default function Page() {
         {/* ═══ 나눔조아 ═══ */}
         {tab === 'share' && (
           <div>
-            <h2 className="font-black text-xl mb-1" style={{ color: '#E8846B' }}>나눔조아</h2>
+            <h2 className="font-black text-xl mb-1" style={{ color: '#7B5EA7' }}>나눔조아</h2>
             <p className="text-sm text-gray-400 mb-4">서로 나누면 더 커지는 기쁨</p>
             {shares.length === 0 && (
               <div className="text-center py-16">
@@ -477,11 +477,11 @@ export default function Page() {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               const sharedBy = (item as any).members?.name ?? ''
               return (
-                <div key={item.id} className={`bg-white rounded-2xl p-5 shadow-sm border border-orange-50 mb-3 ${!isActive ? 'opacity-60' : ''}`}>
+                <div key={item.id} className={`bg-white rounded-2xl p-5 shadow-sm border border-purple-50 mb-3 ${!isActive ? 'opacity-60' : ''}`}>
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-black text-base">{item.title}</h3>
                     <span className="text-xs font-bold px-2 py-1 rounded-full"
-                      style={{ background: isActive ? '#5B9A6B20' : '#eee', color: isActive ? '#5B9A6B' : '#bbb' }}>{item.status}</span>
+                      style={{ background: isActive ? '#4A8C6F20' : '#eee', color: isActive ? '#4A8C6F' : '#bbb' }}>{item.status}</span>
                   </div>
                   <p className="text-sm text-gray-500 mb-1">{item.description}</p>
                   {sharedBy && <p className="text-xs text-gray-400">🙋 {sharedBy}</p>}
@@ -493,12 +493,12 @@ export default function Page() {
       </main>
 
       {/* ── 하단 탭 바 ── */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-orange-100 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-purple-100 z-50">
         <div className="max-w-lg mx-auto flex">
           {TABS.map(t => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className="flex-1 py-2.5 flex flex-col items-center gap-0.5 transition-all"
-              style={{ color: tab === t.id ? '#E8846B' : '#bbb' }}>
+              style={{ color: tab === t.id ? '#7B5EA7' : '#bbb' }}>
               <span className="text-lg">{t.icon}</span>
               <span className="text-[10px] font-bold">{t.label}</span>
             </button>
