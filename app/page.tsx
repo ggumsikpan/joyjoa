@@ -249,11 +249,8 @@ export default function Page() {
     if (!editingProfile || !editName.trim()) return
     const { error } = await supabase.from('members').update({ name: editName.trim(), nickname: editNickname.trim() || null }).eq('id', editingProfile)
     if (error) { alert('수정 실패: ' + error.message); return }
-    setEditingProfile(null)
-    // 전체 데이터 새로고침
-    const { data } = await supabase.from('members').select('*').order('sort_order')
-    if (data) setMembers(data)
-    alert('수정 완료!')
+    alert('수정 완료! 페이지를 새로고침합니다.')
+    window.location.reload()
   }
 
   // ── 모임 공유 ───────────────────────────────────────────
