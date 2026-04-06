@@ -155,16 +155,49 @@ export default function Page() {
 
   const isRsvped = (eventId: string) => (eventRsvps[eventId] ?? []).some(r => r.member_id === selectedMember)
 
-  // ── 도서 검색 ──────────────────────────────────────────
+  // ── 도서 검색 (API 라우트 → fallback 직접 호출) ─────────
   const searchBooks = async () => {
     if (!bookQuery.trim()) return
     setBookSearching(true)
     try {
-      const res = await fetch(`/api/books/search?q=${encodeURIComponent(bookQuery)}`)
-      const data = await res.json()
-      setBookResults(data.items ?? [])
+      // 먼저 API 라우트 시도
+      let items = []
+      try {
+        const res = await fetch(`/api/books/search?q=${encodeURIComponent(bookQuery)}`)
+        const data = await res.json()
+        items = data.items ?? []
+      } catch {
+        // fallback: 직접 Google Books API 호출
+        const res = await fetch(`https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(bookQuery)}&maxResults=10&printType=books`)
+        const data = await res.json()
+        items = (data.items ?? []).map((item: Record<string, unknown>) => {
+          const info = item.volumeInfo as Record<string, unknown>
+          const imageLinks = info.imageLinks as Record<string, string> | undefined
+          return {
+            id: item.id, title: info.title ?? '', authors: (info.authors as string[]) ?? [],
+            publisher: info.publisher ?? '', description: ((info.description as string) ?? '').slice(0, 100),
+            thumbnail: imageLinks?.thumbnail ?? imageLinks?.smallThumbnail ?? '',
+            link: info.infoLink ?? '',
+          }
+        })
+      }
+      setBookResults(items)
     } catch { setBookResults([]) }
     setBookSearching(false)
+  }
+
+  // ── 추천 도서에 추가 ───────────────────────────────────
+  const addBookToRecommend = async (b: { title: string; authors: string[]; thumbnail: string; link: string; description: string }) => {
+    await supabase.from('books').insert({
+      title: b.title,
+      author: b.authors.join(', '),
+      description: b.description,
+      cover_url: b.thumbnail,
+      buy_link: b.link,
+      color: '#7B5EA7',
+    })
+    await loadBooks()
+    alert(`"${b.title}" 추천 도서에 추가했어요!`)
   }
 
   // ── 사진 업로드 (앨범 기반) ──────────────────────────────
@@ -556,8 +589,7 @@ export default function Page() {
                 <p className="text-xs font-bold text-gray-400 mb-2">검색 결과 {bookResults.length}건</p>
                 <div className="space-y-2">
                   {bookResults.map(b => (
-                    <a key={b.id} href={b.link} target="_blank" rel="noopener noreferrer"
-                      className="flex gap-3 p-3 bg-white rounded-xl border border-purple-50 shadow-sm hover:shadow-md hover:border-purple-200 transition-all">
+                    <div key={b.id} className="flex gap-3 p-3 bg-white rounded-xl border border-purple-50 shadow-sm">
                       {b.thumbnail ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={b.thumbnail} alt={b.title} className="w-14 h-20 object-cover rounded-lg shrink-0 shadow-sm" />
@@ -570,10 +602,20 @@ export default function Page() {
                         <h4 className="font-bold text-sm truncate">{b.title}</h4>
                         <p className="text-xs mt-0.5" style={{ color: '#7B5EA7' }}>{b.authors.join(', ')}</p>
                         {b.publisher && <p className="text-xs text-gray-400 mt-0.5">{b.publisher}</p>}
-                        {b.description && <p className="text-xs text-gray-300 mt-1 line-clamp-2">{b.description}</p>}
+                        <div className="flex gap-2 mt-2">
+                          {b.link && (
+                            <a href={b.link} target="_blank" rel="noopener noreferrer"
+                              className="text-xs font-bold px-3 py-1 rounded-lg border border-purple-200 text-[#7B5EA7] hover:bg-purple-50">
+                              상세보기
+                            </a>
+                          )}
+                          <button onClick={() => addBookToRecommend(b)}
+                            className="text-xs font-bold px-3 py-1 rounded-lg text-white" style={{ background: '#7B5EA7' }}>
+                            + 추천 추가
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-xs text-gray-300 shrink-0 self-center">→</span>
-                    </a>
+                    </div>
                   ))}
                 </div>
               </div>
