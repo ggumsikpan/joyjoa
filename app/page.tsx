@@ -52,6 +52,9 @@ export default function Page() {
   const [bookQuery, setBookQuery] = useState('')
   const [bookResults, setBookResults] = useState<{ id: string; title: string; authors: string[]; publisher: string; thumbnail: string; link: string; description: string }[]>([])
   const [bookSearching, setBookSearching] = useState(false)
+  const [bookLink, setBookLink] = useState('')
+  const [bookLinkLoading, setBookLinkLoading] = useState(false)
+  const [bookPreview, setBookPreview] = useState<{ title: string; author: string; description: string; thumbnail: string; url: string } | null>(null)
   const photoInput = useRef<HTMLInputElement>(null)
 
   // ── 이름 로컬 저장 ─────────────────────────────────────
@@ -201,6 +204,39 @@ export default function Page() {
       setBookResults(items)
     } catch { setBookResults([]) }
     setBookSearching(false)
+  }
+
+  // ── 링크로 책 정보 추출 ─────────────────────────────────
+  const fetchBookFromLink = async () => {
+    if (!bookLink.trim()) return
+    setBookLinkLoading(true)
+    try {
+      const res = await fetch(`/api/books/og?url=${encodeURIComponent(bookLink.trim())}`)
+      const data = await res.json()
+      if (data.title) {
+        setBookPreview({ title: data.title, author: data.author, description: data.description, thumbnail: data.thumbnail, url: data.url })
+      } else {
+        alert('책 정보를 가져오지 못했어요. 링크를 확인해주세요.')
+      }
+    } catch { alert('링크를 가져오는데 실패했어요.') }
+    setBookLinkLoading(false)
+  }
+
+  const registerBook = async () => {
+    if (!bookPreview) return
+    const { error } = await supabase.from('books').insert({
+      title: bookPreview.title,
+      author: bookPreview.author,
+      description: bookPreview.description,
+      cover_url: bookPreview.thumbnail,
+      buy_link: bookPreview.url,
+      color: '#7B5EA7',
+    })
+    if (error) { alert('등록 실패: ' + error.message); return }
+    setBookPreview(null)
+    setBookLink('')
+    await loadBooks()
+    alert('책이 등록되었어요!')
   }
 
   // ── 추천 도서에 추가 ───────────────────────────────────
@@ -681,20 +717,62 @@ export default function Page() {
         {tab === 'books' && (
           <div>
             <h2 className="font-black text-xl mb-1" style={{ color: '#7B5EA7' }}>소식조아</h2>
-            <p className="text-sm text-gray-400 mb-4">도서를 검색하고 추천해보세요</p>
+            <p className="text-sm text-gray-400 mb-4">조이조아 작가들의 책을 소개해요</p>
 
-            {/* 검색 바 */}
-            <div className="flex gap-2 mb-5">
-              <input value={bookQuery} onChange={e => setBookQuery(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && searchBooks()}
-                placeholder="책 제목, 작가명 검색..."
-                className="flex-1 border-2 border-purple-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#7B5EA7]" />
-              <button onClick={searchBooks} disabled={bookSearching}
-                className="px-5 py-2.5 rounded-xl text-white font-bold text-sm shrink-0 disabled:opacity-50"
-                style={{ background: '#7B5EA7' }}>
-                {bookSearching ? '...' : '검색'}
-              </button>
+            {/* 링크로 책 등록 */}
+            <div className="bg-white rounded-2xl p-4 shadow-sm border border-purple-50 mb-5">
+              <p className="text-xs font-bold mb-2" style={{ color: '#7B5EA7' }}>📎 구매 링크로 책 등록하기</p>
+              <p className="text-xs text-gray-400 mb-3">교보문고, YES24, 알라딘 등 구매 페이지 링크를 붙여넣으면 자동으로 정보를 가져와요</p>
+              <div className="flex gap-2 mb-3">
+                <input value={bookLink} onChange={e => setBookLink(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && fetchBookFromLink()}
+                  placeholder="https://..."
+                  className="flex-1 border-2 border-purple-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#7B5EA7]" />
+                <button onClick={fetchBookFromLink} disabled={bookLinkLoading}
+                  className="px-4 py-2.5 rounded-xl text-white font-bold text-sm shrink-0 disabled:opacity-50"
+                  style={{ background: '#7B5EA7' }}>
+                  {bookLinkLoading ? '...' : '가져오기'}
+                </button>
+              </div>
+              {/* 미리보기 */}
+              {bookPreview && (
+                <div className="border-2 border-purple-200 rounded-xl p-3 bg-purple-50/30">
+                  <div className="flex gap-3">
+                    {bookPreview.thumbnail ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={bookPreview.thumbnail} alt="" className="w-16 h-22 object-cover rounded-lg shrink-0 shadow-sm" />
+                    ) : (
+                      <div className="w-16 h-22 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#EDE6F5' }}>📚</div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-sm truncate">{bookPreview.title}</p>
+                      <p className="text-xs mt-0.5" style={{ color: '#7B5EA7' }}>{bookPreview.author}</p>
+                      {bookPreview.description && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{bookPreview.description}</p>}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 mt-3">
+                    <button onClick={registerBook} className="flex-1 text-sm font-bold py-2 rounded-xl text-white" style={{ background: '#7B5EA7' }}>등록하기</button>
+                    <button onClick={() => { setBookPreview(null); setBookLink('') }} className="flex-1 text-sm font-bold py-2 rounded-xl border border-gray-200 text-gray-500">취소</button>
+                  </div>
+                </div>
+              )}
             </div>
+
+            {/* 검색으로도 등록 가능 */}
+            <details className="mb-5">
+              <summary className="text-xs text-gray-400 cursor-pointer hover:text-[#7B5EA7]">🔍 책 제목으로 검색해서 등록하기</summary>
+              <div className="mt-3 flex gap-2">
+                <input value={bookQuery} onChange={e => setBookQuery(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && searchBooks()}
+                  placeholder="책 제목, 작가명 검색..."
+                  className="flex-1 border-2 border-purple-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#7B5EA7]" />
+                <button onClick={searchBooks} disabled={bookSearching}
+                  className="px-4 py-2.5 rounded-xl text-white font-bold text-sm shrink-0 disabled:opacity-50"
+                  style={{ background: '#7B5EA7' }}>
+                  {bookSearching ? '...' : '검색'}
+                </button>
+              </div>
+            </details>
 
             {/* 검색 결과 */}
             {bookResults.length > 0 && (
