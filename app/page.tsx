@@ -413,7 +413,7 @@ export default function Page() {
             <p className="text-sm text-gray-400 mb-2">함께하는 {members.length}명의 소중한 가족</p>
             {selectedMember ? (
               <div className="rounded-xl px-4 py-2.5 mb-4 text-xs" style={{ background: '#EDE6F5', color: '#7B5EA7' }}>
-                💡 내 이름 옆의 <span className="font-bold">수정</span> 버튼을 눌러 이름과 별명을 변경할 수 있어요
+                💡 내 이름 옆의 <span className="font-bold">수정</span> 버튼을 눌러 이름(카톡 대화명)과 아이디(별명)를 변경할 수 있어요
               </div>
             ) : (
               <div className="rounded-xl px-4 py-2.5 mb-4 text-xs bg-yellow-50 text-yellow-700">
@@ -441,12 +441,12 @@ export default function Page() {
                   {editingProfile === m.id && (
                     <div className="px-3 pb-3 space-y-2">
                       <div>
-                        <label className="text-xs text-gray-400 mb-1 block">이름</label>
+                        <label className="text-xs text-gray-400 mb-1 block">이름 (카톡 대화명)</label>
                         <input value={editName} onChange={e => setEditName(e.target.value)}
                           className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7B5EA7]" />
                       </div>
                       <div>
-                        <label className="text-xs text-gray-400 mb-1 block">별명 (카톡 대화명 등)</label>
+                        <label className="text-xs text-gray-400 mb-1 block">아이디 (별명)</label>
                         <input value={editNickname} onChange={e => setEditNickname(e.target.value)} placeholder="선택사항"
                           className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7B5EA7]" />
                       </div>
