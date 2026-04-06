@@ -247,10 +247,27 @@ export default function Page() {
   }
   const saveProfile = async () => {
     if (!editingProfile || !editName.trim()) return
-    const { error } = await supabase.from('members').update({ name: editName.trim(), nickname: editNickname.trim() || null }).eq('id', editingProfile)
+    const newName = editName.trim()
+    const newNick = editNickname.trim() || null
+
+    // 업데이트 실행
+    const { error, count } = await supabase
+      .from('members')
+      .update({ name: newName, nickname: newNick })
+      .eq('id', editingProfile)
+      .select()
+
     if (error) { alert('수정 실패: ' + error.message); return }
-    alert('수정 완료! 페이지를 새로고침합니다.')
-    window.location.reload()
+
+    // 업데이트 확인
+    const { data: check } = await supabase.from('members').select('name, nickname').eq('id', editingProfile).single()
+
+    if (check?.name === newName) {
+      alert(`수정 완료!\n이름: ${check.name}\n별명: ${check.nickname ?? '없음'}`)
+      window.location.reload()
+    } else {
+      alert(`DB 반영 안됨!\n요청: ${newName}\nDB: ${check?.name}\n\nSupabase에서 members 테이블의 UPDATE RLS 정책을 확인해주세요.`)
+    }
   }
 
   // ── 모임 공유 ───────────────────────────────────────────
