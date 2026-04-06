@@ -12,7 +12,7 @@ type Book = { id: string; title: string; author: string; description: string; co
 type Share = { id: string; title: string; description: string; status: string; created_at: string; shared_by: string; members?: { name: string } }
 type Album = { id: string; title: string; description: string; cover_url: string | null; created_at: string; photo_count?: number }
 type Photo = { id: string; album_id: string; album_title: string; image_url: string; created_at: string }
-type VolunteerLog = { id: string; title: string; log_date: string; summary: string; content: string; created_at: string }
+type VolunteerLog = { id: string; title: string; log_date: string; summary: string; content: string; video_url: string | null; created_at: string }
 
 type TabId = 'home' | 'members' | 'events' | 'photos' | 'books' | 'share'
 const TABS: { id: TabId; icon: string; label: string }[] = [
@@ -785,6 +785,7 @@ export default function Page() {
                         <h3 className="font-black text-sm">{log.title}</h3>
                         <p className="text-xs text-gray-400 mt-0.5">📅 {log.log_date}</p>
                         <p className="text-xs text-gray-500 mt-1 line-clamp-2">{log.summary}</p>
+                        {log.video_url && <p className="text-xs mt-1" style={{ color: '#4A8C6F' }}>🎬 영상 보기</p>}
                       </div>
                       <span className="text-gray-300 text-xs shrink-0">→</span>
                     </div>
@@ -830,6 +831,21 @@ export default function Page() {
                 <p className="text-xs text-gray-400">📅 {openLog.log_date}</p>
               </div>
             </div>
+            {/* 유튜브 영상 */}
+            {openLog.video_url && openLog.video_url.split('\n').filter(Boolean).map((url, i) => {
+              const videoId = url.match(/(?:youtu\.be\/|v=)([^&?\s]+)/)?.[1]
+              if (!videoId) return null
+              return (
+                <div key={i} className="rounded-2xl overflow-hidden mb-3 shadow-sm">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${videoId}`}
+                    className="w-full aspect-video"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen />
+                </div>
+              )
+            })}
+
             <div className="bg-white rounded-2xl p-5 shadow-sm border border-purple-50">
               <p className="text-sm font-bold mb-3" style={{ color: '#7B5EA7' }}>{openLog.summary}</p>
               <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
