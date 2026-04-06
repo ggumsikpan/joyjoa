@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 
 // ── 타입 ─────────────────────────────────────────────────
-type Member = { id: string; name: string; is_author: boolean; sort_order: number }
+type Member = { id: string; name: string; nickname: string | null; is_author: boolean; sort_order: number }
 type Morning = { id: string; member_id: string; date: string }
 type Rsvp = { id: string; event_id: string; member_id: string; created_at: string; members?: { name: string } }
 type Event = { id: string; title: string; description: string; place: string; event_date: string; capacity: number; emoji: string; color: string }
@@ -267,6 +267,7 @@ export default function Page() {
                   </div>
                   <div className="flex-1">
                     <p className="font-bold text-sm">{m.name}</p>
+                    {m.nickname && <p className="text-xs text-gray-400">💬 {m.nickname}</p>}
                     {m.is_author && <p className="text-xs" style={{ color: '#7B5EA7' }}>✨ 작가님</p>}
                   </div>
                   <span className="text-xs text-gray-300">#{i + 1}</span>
