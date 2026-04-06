@@ -213,12 +213,19 @@ export default function Page() {
     try {
       const res = await fetch(`/api/books/og?url=${encodeURIComponent(bookLink.trim())}`)
       const data = await res.json()
-      if (data.title) {
-        setBookPreview({ title: data.title, author: data.author, description: data.description, thumbnail: data.thumbnail, url: data.url })
-      } else {
-        alert('책 정보를 가져오지 못했어요. 링크를 확인해주세요.')
-      }
-    } catch { alert('링크를 가져오는데 실패했어요.') }
+      // 정보를 못 가져와도 빈 폼으로 열어서 직접 입력 가능
+      setBookPreview({
+        title: data.title || '',
+        author: data.author || '',
+        description: data.description || '',
+        thumbnail: data.thumbnail || '',
+        url: bookLink.trim(),
+      })
+      if (!data.title) alert('자동 추출이 안 돼서 직접 입력해주세요!')
+    } catch {
+      setBookPreview({ title: '', author: '', description: '', thumbnail: '', url: bookLink.trim() })
+      alert('자동 추출이 안 돼서 직접 입력해주세요!')
+    }
     setBookLinkLoading(false)
   }
 
@@ -734,24 +741,36 @@ export default function Page() {
                   {bookLinkLoading ? '...' : '가져오기'}
                 </button>
               </div>
-              {/* 미리보기 */}
+              {/* 미리보기 + 편집 가능 폼 */}
               {bookPreview && (
-                <div className="border-2 border-purple-200 rounded-xl p-3 bg-purple-50/30">
-                  <div className="flex gap-3">
-                    {bookPreview.thumbnail ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={bookPreview.thumbnail} alt="" className="w-16 h-22 object-cover rounded-lg shrink-0 shadow-sm" />
-                    ) : (
-                      <div className="w-16 h-22 rounded-lg flex items-center justify-center shrink-0" style={{ background: '#EDE6F5' }}>📚</div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-sm truncate">{bookPreview.title}</p>
-                      <p className="text-xs mt-0.5" style={{ color: '#7B5EA7' }}>{bookPreview.author}</p>
-                      {bookPreview.description && <p className="text-xs text-gray-400 mt-1 line-clamp-2">{bookPreview.description}</p>}
-                    </div>
+                <div className="border-2 border-purple-200 rounded-xl p-3 bg-purple-50/30 space-y-2">
+                  {bookPreview.thumbnail && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={bookPreview.thumbnail} alt="" className="w-20 h-28 object-cover rounded-lg shadow-sm" />
+                  )}
+                  <div>
+                    <label className="text-xs text-gray-400">책 제목</label>
+                    <input value={bookPreview.title} onChange={e => setBookPreview({ ...bookPreview, title: e.target.value })}
+                      className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm font-bold focus:outline-none focus:border-[#7B5EA7]" />
                   </div>
-                  <div className="flex gap-2 mt-3">
-                    <button onClick={registerBook} className="flex-1 text-sm font-bold py-2 rounded-xl text-white" style={{ background: '#7B5EA7' }}>등록하기</button>
+                  <div>
+                    <label className="text-xs text-gray-400">작가명</label>
+                    <input value={bookPreview.author} onChange={e => setBookPreview({ ...bookPreview, author: e.target.value })}
+                      className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7B5EA7]" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">한줄 소개</label>
+                    <input value={bookPreview.description} onChange={e => setBookPreview({ ...bookPreview, description: e.target.value })}
+                      className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7B5EA7]" />
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400">표지 이미지 URL (선택)</label>
+                    <input value={bookPreview.thumbnail} onChange={e => setBookPreview({ ...bookPreview, thumbnail: e.target.value })}
+                      placeholder="https://..."
+                      className="w-full border border-purple-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#7B5EA7]" />
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={registerBook} disabled={!bookPreview.title.trim()} className="flex-1 text-sm font-bold py-2 rounded-xl text-white disabled:opacity-50" style={{ background: '#7B5EA7' }}>등록하기</button>
                     <button onClick={() => { setBookPreview(null); setBookLink('') }} className="flex-1 text-sm font-bold py-2 rounded-xl border border-gray-200 text-gray-500">취소</button>
                   </div>
                 </div>
