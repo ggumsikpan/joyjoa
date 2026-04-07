@@ -74,7 +74,7 @@ export default function Page() {
 
   // ── 데이터 로드 ────────────────────────────────────────
   const loadMembers = useCallback(async () => {
-    const { data } = await supabase.from('members').select('*').order('sort_order')
+    const { data } = await supabase.from('members').select('*').neq('is_active', false).order('sort_order')
     if (data) setMembers(data)
   }, [])
 

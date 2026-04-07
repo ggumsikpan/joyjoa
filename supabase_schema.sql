@@ -8,6 +8,7 @@ CREATE TABLE members (
   is_author BOOLEAN DEFAULT false,
   avatar_url TEXT,
   sort_order INT DEFAULT 0,
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
