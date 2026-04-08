@@ -46,6 +46,7 @@ export default function Page() {
   const [albums, setAlbums] = useState<Album[]>([])
   const [photos, setPhotos] = useState<Photo[]>([])
   const [openAlbum, setOpenAlbum] = useState<Album | null>(null)
+  const [openPhotoIdx, setOpenPhotoIdx] = useState<number | null>(null)
   const [newAlbumTitle, setNewAlbumTitle] = useState('')
   const [showNewAlbum, setShowNewAlbum] = useState(false)
   const [selectedMember, setSelectedMember] = useState<string>('')
@@ -763,11 +764,36 @@ export default function Page() {
               </div>
             ) : (
               <div className="grid grid-cols-3 gap-1.5">
-                {photos.map(p => (
+                {photos.map((p, idx) => (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img key={p.id} src={p.image_url} alt=""
-                    className="w-full aspect-square object-cover rounded-xl" />
+                    onClick={() => setOpenPhotoIdx(idx)}
+                    className="w-full aspect-square object-cover rounded-xl cursor-pointer active:opacity-80" />
                 ))}
+              </div>
+            )}
+
+            {/* 사진 라이트박스 */}
+            {openPhotoIdx !== null && photos[openPhotoIdx] && (
+              <div onClick={() => setOpenPhotoIdx(null)}
+                className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+                <button onClick={(e) => { e.stopPropagation(); setOpenPhotoIdx(null) }}
+                  className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/20 text-white text-xl flex items-center justify-center">✕</button>
+                {openPhotoIdx > 0 && (
+                  <button onClick={(e) => { e.stopPropagation(); setOpenPhotoIdx(openPhotoIdx - 1) }}
+                    className="absolute left-2 w-11 h-11 rounded-full bg-white/20 text-white text-2xl flex items-center justify-center">‹</button>
+                )}
+                {openPhotoIdx < photos.length - 1 && (
+                  <button onClick={(e) => { e.stopPropagation(); setOpenPhotoIdx(openPhotoIdx + 1) }}
+                    className="absolute right-2 w-11 h-11 rounded-full bg-white/20 text-white text-2xl flex items-center justify-center">›</button>
+                )}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={photos[openPhotoIdx].image_url} alt=""
+                  onClick={(e) => e.stopPropagation()}
+                  className="max-w-full max-h-full object-contain rounded-lg" />
+                <p className="absolute bottom-4 left-0 right-0 text-center text-white/70 text-xs">
+                  {openPhotoIdx + 1} / {photos.length}
+                </p>
               </div>
             )}
           </div>
