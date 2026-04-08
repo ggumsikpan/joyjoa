@@ -68,8 +68,15 @@ export async function POST(req: NextRequest) {
     const hasMorning = MORNING_KEYWORDS.some(kw => content.includes(kw))
     if (!hasMorning) continue
 
-    // 멤버 매칭
-    const memberId = nameMap.get(senderName)
+    // 멤버 매칭: 전체 이름 → 괄호 앞 본명 → 괄호 안 별명 순으로 시도
+    // 예: "홍성호(검마사)" → "홍성호" 또는 "검마사"로 매칭
+    let memberId = nameMap.get(senderName)
+    if (!memberId) {
+      const parenMatch = senderName.match(/^(.+?)\s*\((.+?)\)\s*$/)
+      if (parenMatch) {
+        memberId = nameMap.get(parenMatch[1].trim()) || nameMap.get(parenMatch[2].trim())
+      }
+    }
     if (!memberId) continue
 
     // 같은 날 중복 방지
