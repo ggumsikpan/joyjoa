@@ -20,8 +20,8 @@ const TABS: { id: TabId; icon: string; label: string }[] = [
   { id: 'members', icon: '👥', label: '함께조아' },
   { id: 'events', icon: '📅', label: '모임조아' },
   { id: 'photos', icon: '📸', label: '추억조아' },
-  { id: 'books', icon: '📚', label: '소식조아' },
   { id: 'share', icon: '🎁', label: '나눔조아' },
+  { id: 'books', icon: '📚', label: '소식조아' },
 ]
 
 const today = () => {
