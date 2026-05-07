@@ -5,7 +5,6 @@ import { supabase } from '@/lib/supabase'
 
 // ── 타입 ─────────────────────────────────────────────────
 type Member = { id: string; name: string; nickname: string | null; is_author: boolean; sort_order: number }
-type Morning = { id: string; member_id: string; date: string }
 type Rsvp = { id: string; event_id: string; member_id: string; created_at: string; members?: { name: string } }
 type Event = { id: string; title: string; description: string; place: string; event_date: string; capacity: number; emoji: string; color: string; event_note: string | null }
 type Book = { id: string; title: string; author: string; description: string; cover_url: string; buy_link: string; color: string }
@@ -24,18 +23,9 @@ const TABS: { id: TabId; icon: string; label: string }[] = [
   { id: 'books', icon: '📚', label: '소식조아' },
 ]
 
-const today = () => {
-  const now = new Date()
-  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
-  return kst.toISOString().slice(0, 10)
-}
-
 export default function Page() {
   const [tab, setTab] = useState<TabId>('home')
   const [members, setMembers] = useState<Member[]>([])
-  const [todayMornings, setTodayMornings] = useState<Morning[]>([])
-  const [todayMorningNames, setTodayMorningNames] = useState<string[]>([])
-  const [recentMornings, setRecentMornings] = useState<{ date: string; count: number }[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [eventRsvps, setEventRsvps] = useState<Record<string, Rsvp[]>>({})
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null)
@@ -51,8 +41,6 @@ export default function Page() {
   const [showNewAlbum, setShowNewAlbum] = useState(false)
   const [selectedMember, setSelectedMember] = useState<string>('')
   const [uploading, setUploading] = useState(false)
-  const [morningUploading, setMorningUploading] = useState(false)
-  const [morningResult, setMorningResult] = useState<{ total: number; inserted: number; skipped: number; summary: { date: string; count: number; names: string[] }[] } | null>(null)
   const [editingProfile, setEditingProfile] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editNickname, setEditNickname] = useState('')
@@ -77,32 +65,6 @@ export default function Page() {
   const loadMembers = useCallback(async () => {
     const { data } = await supabase.from('members').select('*').neq('is_active', false).order('sort_order')
     if (data) setMembers(data)
-  }, [])
-
-  const loadTodayMornings = useCallback(async () => {
-    const { data } = await supabase.from('mornings').select('*, members(name)').eq('date', today())
-    if (data) {
-      setTodayMornings(data)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setTodayMorningNames(data.map((m: any) => {
-        const name = m.members?.name ?? ''
-        const mem = members.find(mb => mb.name === name)
-        return mem?.nickname ? `${name}(${mem.nickname})` : name
-      }))
-    }
-  }, [])
-
-  const loadRecentMornings = useCallback(async () => {
-    const days: { date: string; count: number }[] = []
-    for (let i = 0; i < 5; i++) {
-      const now = new Date()
-      const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000)
-      kst.setDate(kst.getDate() - i)
-      const dateStr = kst.toISOString().slice(0, 10)
-      const { count } = await supabase.from('mornings').select('*', { count: 'exact', head: true }).eq('date', dateStr)
-      days.push({ date: `${kst.getMonth() + 1}/${kst.getDate()}`, count: count ?? 0 })
-    }
-    setRecentMornings(days)
   }, [])
 
   const loadEvents = useCallback(async () => {
@@ -162,9 +124,9 @@ export default function Page() {
   }, [])
 
   useEffect(() => {
-    loadMembers(); loadTodayMornings(); loadRecentMornings()
+    loadMembers()
     loadEvents(); loadAllRsvps(); loadBooks(); loadShares(); loadAlbums(); loadPhotos(); loadVolunteerLogs()
-  }, [loadMembers, loadTodayMornings, loadRecentMornings, loadEvents, loadAllRsvps, loadBooks, loadShares, loadAlbums, loadPhotos, loadVolunteerLogs])
+  }, [loadMembers, loadEvents, loadAllRsvps, loadBooks, loadShares, loadAlbums, loadPhotos, loadVolunteerLogs])
 
 
   // ── 꼬리달기 (참여 신청 / 취소) ────────────────────────
@@ -303,33 +265,6 @@ export default function Page() {
     await loadAlbums()
   }
 
-  // ── 카톡 대화 업로드 → 조모닝 파싱 ────────────────────────
-  const uploadMorningChat = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setMorningUploading(true)
-    setMorningResult(null)
-
-    const formData = new FormData()
-    formData.append('file', file)
-
-    try {
-      const res = await fetch('/api/mornings/parse', { method: 'POST', body: formData })
-      const data = await res.json()
-      if (res.ok) {
-        setMorningResult(data)
-        await loadTodayMornings()
-        await loadRecentMornings()
-      } else {
-        alert(data.error || '업로드에 실패했습니다.')
-      }
-    } catch {
-      alert('업로드 중 오류가 발생했습니다.')
-    }
-    setMorningUploading(false)
-    e.target.value = ''
-  }
-
   // ── 프로필 수정 ─────────────────────────────────────────
   const startEditProfile = (m: Member) => {
     setEditingProfile(m.id)
@@ -430,63 +365,6 @@ export default function Page() {
                 </select>
               </div>
             )}
-
-            {/* 조모닝 현황 */}
-            <div className="rounded-2xl p-5 mb-5" style={{ background: 'linear-gradient(135deg, #7B5EA7, #A78BCA)' }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-white font-black text-lg">☀️ 오늘의 조모닝</p>
-                  <p className="text-white/70 text-sm mt-1">오늘 {todayMornings.length}명이 카톡에서 인사했어요</p>
-                </div>
-                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                  <span className="text-white font-black text-2xl">{todayMornings.length}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* 최근 5일 */}
-            <div className="rounded-2xl bg-white p-5 shadow-sm border border-purple-50 mb-5">
-              <h3 className="font-black text-base mb-3" style={{ color: '#7B5EA7' }}>최근 조모닝 현황</h3>
-              <div className="flex gap-2">
-                {recentMornings.map((d, i) => (
-                  <div key={i} className="flex-1 text-center">
-                    <div className="rounded-xl py-2 mb-1" style={{ background: i === 0 ? '#7B5EA7' : '#EDE6F5' }}>
-                      <p className="font-black text-lg" style={{ color: i === 0 ? 'white' : '#7B5EA7' }}>{d.count}</p>
-                    </div>
-                    <p className="text-xs text-gray-400">{d.date}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* 오늘 조모닝 명단 */}
-            <div className="rounded-2xl bg-white p-5 shadow-sm border border-purple-50 mb-5">
-              <h3 className="font-black text-base mb-3" style={{ color: '#7B5EA7' }}>오늘의 조모닝 멤버</h3>
-              <div className="flex flex-wrap gap-2">
-                {todayMorningNames.length === 0 && <p className="text-sm text-gray-300">아직 아무도 인사하지 않았어요</p>}
-                {todayMorningNames.map((n, i) => (
-                  <span key={i} className="px-3 py-1 rounded-full text-xs font-medium" style={{ background: '#EDE6F5', color: '#7B5EA7' }}>{n}</span>
-                ))}
-              </div>
-
-              {/* 카톡 대화 업로드 */}
-              <div className="mt-4 pt-3 border-t border-purple-100">
-                <label className="flex items-center justify-center gap-2 cursor-pointer text-xs font-medium px-4 py-2.5 rounded-xl border-2 border-dashed border-purple-200 hover:border-[#7B5EA7] hover:bg-purple-50 transition-all"
-                  style={{ color: '#7B5EA7' }}>
-                  {morningUploading ? '분석 중...' : '📂 카톡 대화 내보내기 파일로 조모닝 업데이트'}
-                  <input type="file" accept=".txt" className="hidden" onChange={uploadMorningChat} disabled={morningUploading} />
-                </label>
-                {morningResult && (
-                  <div className="mt-3 p-3 rounded-xl text-xs" style={{ background: '#F0FFF4', color: '#2D6A4F' }}>
-                    <p className="font-bold mb-1">업데이트 완료!</p>
-                    <p>총 {morningResult.total}건 발견 / {morningResult.inserted}건 새로 추가 / {morningResult.skipped}건 이미 등록</p>
-                    {morningResult.summary.map(s => (
-                      <p key={s.date} className="mt-1">{s.date}: {s.count}명 ({s.names.join(', ')})</p>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
 
             {/* 다가오는 모임 */}
             {events.length > 0 && (
